@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secret Santa Assignment Engine</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="glass-bg"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="logo">
+                <i class="fa-solid fa-gift gift-icon"></i>
+                <h1>Acme <span>Secret Santa</span></h1>
+            </div>
+            <p class="subtitle">Assign secret children to employees instantly with complete constraint satisfaction.</p>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <div class="app-grid">
+            
+            <!-- Left Panel: Inputs and Configurations -->
+            <section class="panel upload-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-sliders icon-accent"></i>
+                    <h2>Configure & Upload</h2>
+                </div>
+
+                <form id="santaForm" class="config-form" method="POST" onsubmit="event.preventDefault();">
+                    <!-- Employees CSV Upload -->
+                    <div class="input-group">
+                        <label for="employeesFile">
+                            <span class="label-text">Current Employees CSV <span class="required">*</span></span>
+                            <span class="helper-text">Required columns: Employee_Name, Employee_EmailID</span>
+                        </label>
+                        <div class="file-drop-zone" id="employeesDropZone">
+                            <i class="fa-solid fa-file-csv file-icon"></i>
+                            <span class="file-message">Drag & drop or click to upload</span>
+                            <input type="file" id="employeesFile" name="employees_file" accept=".csv" required>
+                        </div>
+                        <div class="file-info" id="employeesFileInfo"></div>
+                    </div>
+
+                    <!-- Previous Assignments CSV Upload (Optional) -->
+                    <div class="input-group">
+                        <label for="previousFile">
+                            <span class="label-text">Previous Assignments CSV (Optional)</span>
+                            <span class="helper-text">Avoid repeating last year's assignments</span>
+                        </label>
+                        <div class="file-drop-zone" id="previousDropZone">
+                            <i class="fa-solid fa-clock-rotate-left file-icon"></i>
+                            <span class="file-message">Drag & drop or click to upload</span>
+                            <input type="file" id="previousFile" name="previous_file" accept=".csv">
+                        </div>
+                        <div class="file-info" id="previousFileInfo"></div>
+                    </div>
+
+                    <!-- Random Seed Parameter -->
+                    <div class="input-group">
+                        <label for="seedInput">
+                            <span class="label-text">Random Seed (Optional)</span>
+                            <span class="helper-text">Enter an integer for a reproducible, deterministic run</span>
+                        </label>
+                        <div class="input-wrapper">
+                            <i class="fa-solid fa-key input-icon"></i>
+                            <input type="number" id="seedInput" name="seed" placeholder="e.g. 42" min="0">
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn-primary" id="submitBtn">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Generate Assignments</span>
+                    </button>
+                </form>
+            </section>
+
+            <!-- Right Panel: Results & Previews -->
+            <section class="panel results-panel">
+                <div class="panel-header">
+                    <i class="fa-solid fa-square-poll-horizontal icon-accent"></i>
+                    <h2>Results & Outputs</h2>
+                </div>
+
+                <!-- Empty State -->
+                <div id="resultsEmpty" class="results-empty">
+                    <i class="fa-solid fa-wand-magic"></i>
+                    <p>Upload files and click <strong>Generate</strong> to view assignments.</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="resultsLoading" class="results-loading hidden">
+                    <div class="spinner"></div>
+                    <p>Running backtracking assignment algorithm...</p>
+                </div>
+
+                <!-- Error Display -->
+                <div id="errorBox" class="error-box hidden">
+                    <i class="fa-solid fa-circle-exclamation error-icon"></i>
+                    <div class="error-content">
+                        <h3>Assignment Failed</h3>
+                        <p id="errorMessage"></p>
+                    </div>
+                </div>
+
+                <!-- Assignment Results Content -->
+                <div id="resultsContent" class="results-content hidden">
+                    <div class="results-action-bar">
+                        <div class="search-wrapper">
+                            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                            <input type="text" id="searchBar" placeholder="Search giver or child...">
+                        </div>
+                        <button id="downloadCsvBtn" class="btn-secondary">
+                            <i class="fa-solid fa-download"></i>
+                            <span>Download CSV</span>
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="assignmentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Giver Employee</th>
+                                    <th class="arrow-col"></th>
+                                    <th>Secret Child Employee</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assignmentsBody">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Testing & Diagnostics Section -->
+        <section class="panel diagnostics-panel">
+            <div class="panel-header-row">
+                <div class="panel-header">
+                    <i class="fa-solid fa-vial-virus icon-accent"></i>
+                    <h2>System Diagnostics & Unit Tests</h2>
+                </div>
+                <button id="runTestsBtn" class="btn-test">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Execute Test Suite</span>
+                </button>
+            </div>
+            
+            <div class="terminal-container">
+                <div class="terminal-header">
+                    <div class="terminal-buttons">
+                        <span class="t-btn close"></span>
+                        <span class="t-btn minimize"></span>
+                        <span class="t-btn expand"></span>
+                    </div>
+                    <span class="terminal-title">pytest_runner.sh</span>
+                </div>
+                <pre class="terminal-output" id="testConsole">Click "Execute Test Suite" to run the 34 verification unit tests in real time.</pre>
+            </div>
+        </section>
+
+        <!-- Architecture info -->
+        <footer class="footer-info">
+            <div class="tech-tag">SOLID Design</div>
+            <div class="tech-tag">FastAPI</div>
+            <div class="tech-tag">Backtracking Search</div>
+            <div class="tech-tag">MVR Heuristic</div>
+        </footer>
+    </div>
+
+    <!-- App Logic script -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
