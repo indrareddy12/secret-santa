@@ -6,4 +6,3 @@ __pycache__/
 venv/
 .idea/
 .vscode/
-sample_data/output_assignments.csv
